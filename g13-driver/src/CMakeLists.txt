@@ -15,7 +15,7 @@ find_package(PkgConfig REQUIRED)
 
 # Find modules
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
-pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
+pkg_check_modules(APPINDICATOR REQUIRED ayatana-appindicator3-0.1)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0) 
 
 # Add include directories

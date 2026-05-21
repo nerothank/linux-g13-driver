@@ -16,7 +16,7 @@
 
 // Headers for the tray icon functionality
 #include <gtk/gtk.h>
-#include <libappindicator/app-indicator.h>
+#include <libayatana-appindicator3-0.1/libayatana-appindicator/app-indicator.h>
 
 #include "G13.h"
 #include "Output.h"
