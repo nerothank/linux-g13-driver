@@ -111,6 +111,10 @@ public class G13 extends JPanel {
 		// Provide the macro data to the panels that need it.
 		keybindPanel.setMacros(macros);
 		macroEditorPanel.setMacros(macros);
+		
+		// Keep the initial width (with all data loaded), so changing content (macro names, steps, hints)
+		// does not resize the panels.
+		rightPanel.setPreferredSize(rightPanel.getPreferredSize());
 	}
 
 	/**
