@@ -16,6 +16,7 @@ TARGET_NAME := Linux-G13-Driver
 TARGET_PATH := ../$(TARGET_NAME)
 SCRIPT_DIR  := ./scripts
 SERVICE_SRC := ./systemd/g13.service
+MONITOR_SERVICE_SRC := ./systemd/g13-monitor.service
 DESKTOP_SRC := ./desktop/linux-g13-gui.desktop
 
 # GUI Paths
@@ -72,6 +73,12 @@ install:
 	echo 'java -jar $(JAVADIR)/$(GUI_JAR_NAME) "$$@"' >> g13-gui
 	install -m 755 g13-gui $(DESTDIR)$(BINDIR)/g13-gui
 	rm g13-gui
+	install -m 755 $(SCRIPT_DIR)/g13-lcd $(DESTDIR)$(BINDIR)/g13-lcd
+	install -m 755 $(SCRIPT_DIR)/g13_monitor.py $(DESTDIR)$(BINDIR)/g13-monitor
+	
+	# Start menu entry
+	install -d $(DESTDIR)$(DATADIR)/applications
+	install -m 644 $(DESKTOP_SRC) $(DESTDIR)$(DATADIR)/applications/linux-g13-gui.desktop
 	
 	# Start menu entry
 	install -d $(DESTDIR)$(DATADIR)/applications
@@ -84,9 +91,11 @@ install:
 	# Systemd (Copy static file)
 	install -d $(DESTDIR)$(SYSTEMDDIR)
 	install -m 644 $(SERVICE_SRC) $(DESTDIR)$(SYSTEMDDIR)/g13.service
+	install -m 644 $(MONITOR_SERVICE_SRC) $(DESTDIR)$(SYSTEMDDIR)/g13-monitor.service
 	
 	@echo "System install done."
 	@echo "To enable the service, the user must run: systemctl --user enable --now g13"
+	@echo "Optional LCD system monitor (needs python psutil): systemctl --user enable --now g13-monitor"
 
 # =============================================================================
 # User-Local Installation
@@ -111,6 +120,12 @@ install-user:
 	echo '#!/bin/sh' > $(USER_INSTALL_DIR)/g13-gui
 	echo 'java -jar $(USER_INSTALL_DIR)/$(GUI_JAR_NAME) "$$@"' >> $(USER_INSTALL_DIR)/g13-gui
 	chmod +x $(USER_INSTALL_DIR)/g13-gui
+	install -m 755 $(SCRIPT_DIR)/g13-lcd $(USER_INSTALL_DIR)/g13-lcd
+	install -m 755 $(SCRIPT_DIR)/g13_monitor.py $(USER_INSTALL_DIR)/g13-monitor
+	
+	# Start menu entry (absolute path, ~/.local/bin is not always in the menu's PATH)
+	mkdir -p $(USER_APPS_DIR)
+	sed 's|^Exec=g13-gui|Exec=$(USER_INSTALL_DIR)/g13-gui|' $(DESKTOP_SRC) > $(USER_APPS_DIR)/linux-g13-gui.desktop
 	
 	# Start menu entry (absolute path, ~/.local/bin is not always in the menu's PATH)
 	mkdir -p $(USER_APPS_DIR)
@@ -125,6 +140,7 @@ install-user:
 	# Systemd: Transform static file to use User Path
 	@echo "Configuring Systemd Service..."
 	sed 's|/usr/bin/linux-g13-driver|$(USER_INSTALL_DIR)/linux-g13-driver|g' $(SERVICE_SRC) > $(USER_SYSTEMD_DIR)/g13.service
+	sed 's|/usr/bin/g13-monitor|$(USER_INSTALL_DIR)/g13-monitor|g' $(MONITOR_SERVICE_SRC) > $(USER_SYSTEMD_DIR)/g13-monitor.service
 	
 	# Enable and Start
 	@echo "Enabling and Starting Service..."
@@ -141,6 +157,8 @@ install-user:
 	@echo " Installation Complete!"
 	@echo " GUI Tool: $(USER_INSTALL_DIR)/g13-gui"
 	@echo " Logs: journalctl --user -u g13 -f"
+	@echo " Optional LCD system monitor (needs python psutil):"
+	@echo "   systemctl --user enable --now g13-monitor"
 	@echo "====================================================="
 
 # =============================================================================
@@ -151,26 +169,31 @@ uninstall:
 	@echo "--- Removing System-Wide Installation from $(DESTDIR)$(PREFIX) ---"
 	rm -f $(DESTDIR)$(BINDIR)/linux-g13-driver
 	rm -f $(DESTDIR)$(BINDIR)/g13-gui
+	rm -f $(DESTDIR)$(BINDIR)/g13-lcd
+	rm -f $(DESTDIR)$(BINDIR)/g13-monitor
 	rm -f $(DESTDIR)$(JAVADIR)/$(GUI_JAR_NAME)
 	-rmdir $(DESTDIR)$(JAVADIR) 2>/dev/null
 	rm -f $(DESTDIR)$(DATADIR)/applications/linux-g13-gui.desktop
 	rm -f $(DESTDIR)$(UDEVDIR)/99-g13.rules
 	rm -f $(DESTDIR)$(SYSTEMDDIR)/g13.service
+	rm -f $(DESTDIR)$(SYSTEMDDIR)/g13-monitor.service
 	@echo "System uninstall done."
-	@echo "Users who enabled the service should run: systemctl --user disable --now g13"
+	@echo "Users who enabled the services should run: systemctl --user disable --now g13-monitor g13"
 
 uninstall-user:
 	@echo "--- Removing Installation for Current User ($(USER)) ---"
 	
-	# Stop and disable the service before removing it
-	-systemctl --user disable --now g13.service
-	rm -f $(USER_SYSTEMD_DIR)/g13.service
+	# Stop and disable the services before removing them
+	-systemctl --user disable --now g13-monitor.service g13.service
+	rm -f $(USER_SYSTEMD_DIR)/g13.service $(USER_SYSTEMD_DIR)/g13-monitor.service
 	systemctl --user daemon-reload
 	
 	# Files
 	rm -f $(USER_INSTALL_DIR)/linux-g13-driver
 	rm -f $(USER_INSTALL_DIR)/$(GUI_JAR_NAME)
 	rm -f $(USER_INSTALL_DIR)/g13-gui
+	rm -f $(USER_INSTALL_DIR)/g13-lcd
+	rm -f $(USER_INSTALL_DIR)/g13-monitor
 	rm -f $(USER_APPS_DIR)/linux-g13-gui.desktop
 	
 	# UDEV (Needs Sudo)

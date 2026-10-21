@@ -151,24 +151,48 @@ If you don't want to use the GUI App, you can edit the files manually in `~/.con
 
 ### Using the Display (scripting)
 
-You can write text to the display using a simple pipe command:
-
-The driver creates a Named Pipe (FIFO) to receive text for the LCD.
-
-Location: `/run/user/$UID/g13-lcd` (Check `/tmp/g13-lcd` as fallback if `/run` is unavailable).
+Use the `g13-lcd` command to show text on the LCD. Each argument is one line:
 
 ```bash
-# Find your pipe path (usually based on your user ID, e.g., 1000)
-PIPE="/run/user/$(id -u)/g13-lcd"
+# Show two lines
+g13-lcd "Hello World!" "CPU: 50%"
 
-# Send simple text
-echo "Hello World!" > $PIPE
+# Read lines from another command
+date "+%H:%M" | g13-lcd
 
-# Send multi-line text (CPU/RAM stats)
-echo -e "CPU: 50%\nRAM: 4GB" > $PIPE
+# Clear the screen
+g13-lcd --clear
 ```
 
-Currently, only one font size is implemented. There is an example script for system monitoring in the `scripts` folder. Feel free to try it out, modify it, or share your own scripts!
+The LCD fits 5 lines of 26 characters. Only ASCII is supported: longer text is cut off, and umlauts and accents are converted (`ä` → `ae`, `é` → `e`). Each call replaces the whole screen.
+
+Under the hood, the driver creates a Named Pipe (FIFO) at `$XDG_RUNTIME_DIR/g13-lcd` (usually `/run/user/$UID/g13-lcd`, or `/tmp/g13-lcd` if `XDG_RUNTIME_DIR` is not set). You can also write to it directly, e.g. `echo -e "CPU: 50%\nRAM: 4GB" > /run/user/$(id -u)/g13-lcd`.
+
+Currently, only one font size is implemented.
+
+### LCD System Monitor
+
+`g13-monitor` shows live system stats on the LCD, updated every second:
+
+```
+19:12:03  up   3d 04:12
+CPU  42% [XXXX------] 65C
+RAM  23% 3.6G/15.5G
+NET in  1.2M/s out   85K/s
+DSK rd   12M/s wr   1.3M/s
+```
+
+It requires `python-psutil` (Debian/Ubuntu/Mint: `python3-psutil`). The CPU temperature is shown if your system provides it.
+
+Run it as a systemd user service, which starts and stops together with the driver:
+
+```bash
+systemctl --user enable --now g13-monitor
+```
+
+While no G13 is connected, the monitor waits and starts showing stats as soon as the device is plugged in. When it stops, it clears the LCD. Logs: `journalctl --user -u g13-monitor -f`. You can also run `g13-monitor` directly in a terminal.
+
+The script is in the `scripts` folder (`g13_monitor.py`). Feel free to modify it or share your own scripts!
 
 
 ### Uninstallation
@@ -177,7 +201,7 @@ To remove the driver and all installed files, use the target matching your insta
 
 ```bash
 # Option A: System-Wide Installation
-systemctl --user disable --now g13
+systemctl --user disable --now g13-monitor g13
 sudo make uninstall
 
 # Option B: User-Local Installation (stops and disables the service itself)
