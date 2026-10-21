@@ -22,6 +22,7 @@ You need to install the following packages via your package manager:
 * `libappindicator-gtk3` or `libayatana-appindicator3` (Debian, Ubuntu, Linux Mint)
 * `Java 17` or higher
 * `python-psutil` (for the monitor script)
+* Optional: `xmodmap` and `setxkbmap` (for key names matching your keyboard layout in the GUI, see [Keyboard Layouts](#keyboard-layouts)). They are usually already installed on X11 desktops (Debian/Ubuntu/Mint: `x11-xserver-utils`, Arch: `xorg-xmodmap` `xorg-setxkbmap`).
 
 ### Automated Dependency Installation
 
@@ -111,7 +112,7 @@ g13-gui
 
 This will bring up the UI.
 
-Profiles: The top 4 buttons under the LCD (M1, M2, M3, MR) switch between binding profiles.
+Profiles: The M1, M2, M3 and MR keys (the keys with LEDs above G1-G7) switch between four binding profiles. The LED of the active profile lights up, and each profile has its own bindings and backlight color. The driver always starts with M1.
 
 Save: Changes are saved automatically to `~/.config/g13/bindings-*.properties`.
 
@@ -119,7 +120,17 @@ Live Reload: The driver automatically detects file changes and reloads the confi
 
 ![Config Tool Screenshot](docs/ConfigTool.png)
 
-The top 4 buttons under the LCD screen select the bindings (M1-M3, MR).
+Click M1, M2, M3 or MR in the picture to select the profile to edit. The LCD buttons (the round L0 button left of the screen and the four small L1-L4 buttons below it) are regular keys and can be bound like the G-keys.
+
+### Keyboard Layouts
+
+Bindings and macros store the *physical* key you press, not the character. Your system applies its keyboard layout to the keys the G13 sends, so a key recorded on a Swiss, German, French, ... keyboard types the same character as on that keyboard.
+
+The GUI names the keys as they are printed on your keyboard. It reads the active layout once at startup (via `xmodmap` and `setxkbmap`), and the layout in use is shown below the G13 keypad, e.g. `Keyboard layout: ch (system: ch,us)`.
+
+* If several layouts are configured, the key names follow the **first** one. Bindings still work with all of them; only the names in the GUI may differ.
+* If the layout cannot be read (e.g. `xmodmap` is not installed), the GUI shows `Keyboard layout: US` and uses US key names. The bindings themselves are not affected.
+* If key names look wrong, check the layout shown there first. Restart the GUI after changing your keyboard layout.
 
 > **Important:** If you configure the application while the driver is running, the driver will not pick up changes unless you select a different binding set or restart the driver.
 
@@ -127,7 +138,7 @@ The top 4 buttons under the LCD screen select the bindings (M1-M3, MR).
 
 The driver now includes a fixed default mapping. This means the GUI is not strictly necessary if you prefer other tools. You can map the keys using software like **Input Remapper**.
 
-*(Note: The quick profile change via the four small buttons under the display only works when using the G13 GUI tool.)*
+*(Note: The quick profile change via the M1, M2, M3 and MR keys uses the binding files of the G13 GUI tool.)*
 
 ### Manually create your own Mapping Set
 

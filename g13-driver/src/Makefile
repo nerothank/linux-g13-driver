@@ -80,6 +80,10 @@ install:
 	install -d $(DESTDIR)$(DATADIR)/applications
 	install -m 644 $(DESKTOP_SRC) $(DESTDIR)$(DATADIR)/applications/linux-g13-gui.desktop
 	
+	# Start menu entry
+	install -d $(DESTDIR)$(DATADIR)/applications
+	install -m 644 $(DESKTOP_SRC) $(DESTDIR)$(DATADIR)/applications/linux-g13-gui.desktop
+	
 	# UDEV
 	install -d $(DESTDIR)$(UDEVDIR)
 	install -m 644 udev/99-g13.rules $(DESTDIR)$(UDEVDIR)/99-g13.rules
@@ -118,6 +122,10 @@ install-user:
 	chmod +x $(USER_INSTALL_DIR)/g13-gui
 	install -m 755 $(SCRIPT_DIR)/g13-lcd $(USER_INSTALL_DIR)/g13-lcd
 	install -m 755 $(SCRIPT_DIR)/g13_monitor.py $(USER_INSTALL_DIR)/g13-monitor
+	
+	# Start menu entry (absolute path, ~/.local/bin is not always in the menu's PATH)
+	mkdir -p $(USER_APPS_DIR)
+	sed 's|^Exec=g13-gui|Exec=$(USER_INSTALL_DIR)/g13-gui|' $(DESKTOP_SRC) > $(USER_APPS_DIR)/linux-g13-gui.desktop
 	
 	# Start menu entry (absolute path, ~/.local/bin is not always in the menu's PATH)
 	mkdir -p $(USER_APPS_DIR)

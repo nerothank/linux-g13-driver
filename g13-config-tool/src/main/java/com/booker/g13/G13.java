@@ -7,6 +7,7 @@ import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -33,11 +34,12 @@ public class G13 extends JPanel {
 	 */
 	private static final int MAX_MACROS = 200;
 
-	// Named constants for the G13 keycodes of the M1, M2, M3, and MR buttons.
-    private static final int BINDING_KEY_M1 = 25;
-    private static final int BINDING_KEY_M2 = 26;
-    private static final int BINDING_KEY_M3 = 27;
-    private static final int BINDING_KEY_MR = 28;
+	// Named constants for the G13 keycodes of the M1, M2, M3, and MR buttons (the keys with LEDs above G1-G7).
+	// The L1-L4 keys below the LCD (25-28) are regular, bindable keys.
+    private static final int BINDING_KEY_M1 = 29;
+    private static final int BINDING_KEY_M2 = 30;
+    private static final int BINDING_KEY_M3 = 31;
+    private static final int BINDING_KEY_MR = 32;
     
     /**
      * A set containing the keycodes for the binding switch keys (M1, M2, M3, MR).
@@ -97,6 +99,9 @@ public class G13 extends JPanel {
 		final JPanel p = new JPanel(new BorderLayout());
 		p.setBorder(BorderFactory.createTitledBorder("G13 Keypad"));
 		p.add(g13Label, BorderLayout.CENTER);
+		final JLabel layoutLabel = new JLabel(SystemKeyboardLayout.description());
+		layoutLabel.setToolTipText("Key names are shown as on this keyboard layout. Bindings store the physical key, so they work with any layout.");
+		p.add(layoutLabel, BorderLayout.SOUTH);
 		add(p, BorderLayout.CENTER);
 		
 		final JPanel rightPanel = new JPanel(new BorderLayout());
@@ -107,6 +112,10 @@ public class G13 extends JPanel {
 		// Provide the macro data to the panels that need it.
 		keybindPanel.setMacros(macros);
 		macroEditorPanel.setMacros(macros);
+		
+		// Keep the initial width (with all data loaded), so changing content (macro names, steps, hints)
+		// does not resize the panels.
+		rightPanel.setPreferredSize(rightPanel.getPreferredSize());
 	}
 
 	/**
