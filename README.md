@@ -19,7 +19,7 @@ You need to install the following packages via your package manager:
 * `cmake`
 * `gtk3` / `gtk3-devel`
 * `libusb-1.0-0` (on some distros named `libusb-1.0-0-dev` or `libusb1-devel`)
-* `libappindicator-gtk3` (or similar)
+* `libappindicator-gtk3` or `libayatana-appindicator3` (Debian, Ubuntu, Linux Mint)
 * `Java 17` or higher
 * `python-psutil` (for the monitor script)
 
@@ -47,7 +47,7 @@ The installation process will clean up automatically after finishing.
 ## Choose your Installation Method
 
 ### Option A: System-Wide Installation (Standard)
-This is the recommended method for standard usage. It installs binaries to /usr/bin and resources to /usr/share/.
+This is the recommended method for standard usage. It installs binaries to /usr/bin and resources to /usr/share/, including a "G13 Configuration" start menu entry.
 
 ```bash
 sudo make install
@@ -66,6 +66,8 @@ This method installs everything to your home directory (~/.local/bin). It is int
 make install-user
 ```
 Driver: Installed to ~/.local/bin/linux-g13-driver
+
+Start menu: A "G13 Configuration" entry is added to ~/.local/share/applications.
 
 Service: Automatically enabled and started immediately.
 
@@ -101,7 +103,7 @@ systemctl --user restart g13
 
 After starting the driver, you will see a new icon in your system tray/taskbar. This allows you to open the config menu or quit the driver.
 
-Alternatively, run it from the terminal:
+You can also start it from your start menu ("G13 Configuration"), or run it from the terminal:
 
 ```bash
 g13-gui
@@ -160,13 +162,18 @@ Currently, only one font size is implemented. There is an example script for sys
 
 ### Uninstallation
 
-To remove the driver and all installed files:
+To remove the driver and all installed files, use the target matching your installation method:
 
 ```bash
-make uninstall
+# Option A: System-Wide Installation
+systemctl --user disable --now g13
+sudo make uninstall
+
+# Option B: User-Local Installation (stops and disables the service itself)
+make uninstall-user
 ```
 
-(Note: This removes the binaries, UDEV rules, and service files, but keeps your configuration in ~/.config/g13 to prevent data loss.)
+(Note: This removes the binaries, the start menu entry, UDEV rules, and service files, but keeps your configuration in ~/.config/g13 to prevent data loss.)
 
 
 ## Notes
