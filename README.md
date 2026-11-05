@@ -149,6 +149,18 @@ If you don't want to use the GUI App, you can edit the files manually in `~/.con
     G20=p,k.20
     ```
 
+### Driver Settings
+
+Settings that apply to all profiles are in `~/.config/g13/g13.properties`. The driver creates this file with the default values on its first start, and picks up changes while it is running.
+
+| Setting | Default | Description |
+|---|---|---|
+| `stick_deadzone` | `32` | How far (1-127) the joystick has to move away from the center before a direction key is pressed. Raise it if the stick triggers keys too easily, lower it to make the stick more sensitive. |
+
+```ini
+stick_deadzone=40
+```
+
 ### Using the Display (scripting)
 
 Use the `g13-lcd` command to show text on the LCD. Each argument is one line:
