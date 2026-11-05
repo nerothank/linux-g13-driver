@@ -151,7 +151,7 @@ If you don't want to use the GUI App, you can edit the files manually in `~/.con
 
 ### Driver Settings
 
-Settings that apply to all profiles are in `~/.config/g13/g13.properties`. The driver creates this file with the default values on its first start, and picks up changes while it is running.
+Settings that apply to all profiles are in `~/.config/g13/g13.properties`. The driver creates this file with the default values on its first start, and picks up changes while it is running. You can also change them in the GUI, in the "Joystick (all profiles)" panel.
 
 | Setting | Default | Description |
 |---|---|---|
