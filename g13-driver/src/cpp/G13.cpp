@@ -46,7 +46,7 @@ G13::G13(libusb_device *device) {
     this->bindings = 0;
     this->stick_mode = STICK_KEYS;
     this->last_config_mtime = 0;
-    this->last_settings_mtime = 0;
+    this->last_settings_mtime = {0, 0};
     this->stick_deadzone = G13_DEFAULT_STICK_DEADZONE;
 
     actions.resize(G13_NUM_KEYS);
@@ -128,7 +128,8 @@ void G13::check_for_config_update() {
 
     std::string settings_file = ConfigPath::getSettingsPath();
     if (stat(settings_file.c_str(), &file_stat) == 0) {
-        if (file_stat.st_mtime != last_settings_mtime) {
+        if (file_stat.st_mtim.tv_sec != last_settings_mtime.tv_sec ||
+            file_stat.st_mtim.tv_nsec != last_settings_mtime.tv_nsec) {
             syslog(LOG_INFO, "Settings file change detected. Reloading...");
             loadSettings();
         }
@@ -157,7 +158,7 @@ void G13::loadSettings() {
         }
         if (stat(filename.c_str(), &file_stat) != 0) return;
     }
-    last_settings_mtime = file_stat.st_mtime;
+    last_settings_mtime = file_stat.st_mtim;
 
     std::ifstream file(filename);
     if (!file.is_open()) return;

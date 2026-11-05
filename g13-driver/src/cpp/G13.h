@@ -33,7 +33,7 @@ private:
 
     // Feature: Live-Reload
     time_t last_config_mtime;
-    time_t last_settings_mtime;
+    struct timespec last_settings_mtime; // Nanoseconds, so the GUI saving twice within a second is noticed.
     void check_for_config_update();
 
     // Driver settings (g13.properties), shared by all profiles
