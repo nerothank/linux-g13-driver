@@ -27,12 +27,17 @@ private:
     stick_mode_t          stick_mode;    
     int                   stick_keys[4];   
     int                   bindings;      
+    int                   stick_deadzone; // Distance from the stick center (128) before a direction counts as pressed.
 
     unsigned char lcd_buffer[G13_LCD_BUFFER_SIZE];
 
     // Feature: Live-Reload
     time_t last_config_mtime;
+    time_t last_settings_mtime;
     void check_for_config_update();
+
+    // Driver settings (g13.properties), shared by all profiles
+    void loadSettings();
 
     // --- Private Methods ---
     std::unique_ptr<Macro> loadMacro(int id);

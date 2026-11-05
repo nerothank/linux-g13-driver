@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <algorithm>
 #include <sstream>
+#include <stdexcept>
 #include <istream>
 #include <chrono> 
 #include <syslog.h> 
@@ -28,6 +29,8 @@
 
 extern volatile sig_atomic_t daemon_keep_running;
 const int G13_MAX_MACROS = 200;
+const int G13_STICK_CENTER = 128;
+const int G13_DEFAULT_STICK_DEADZONE = 32;
 
 std::string trim_string(const std::string& str) {
     const std::string whitespace = " \t\n\r\f\v";
@@ -43,6 +46,8 @@ G13::G13(libusb_device *device) {
     this->bindings = 0;
     this->stick_mode = STICK_KEYS;
     this->last_config_mtime = 0;
+    this->last_settings_mtime = 0;
+    this->stick_deadzone = G13_DEFAULT_STICK_DEADZONE;
 
     actions.resize(G13_NUM_KEYS);
     for (int i = 0; i < G13_NUM_KEYS; i++) {
@@ -88,6 +93,7 @@ G13::~G13() {
 void G13::start() {
     if (!this->loaded) return;
     draw_test_pattern();
+    loadSettings();
     loadBindings();
     setModeLeds(1 << bindings); // Light the M-key of the active profile (M1 at start).
     keepGoing = 1;
@@ -119,6 +125,72 @@ void G13::check_for_config_update() {
             loadBindings();
         }
     }
+
+    std::string settings_file = ConfigPath::getSettingsPath();
+    if (stat(settings_file.c_str(), &file_stat) == 0) {
+        if (file_stat.st_mtime != last_settings_mtime) {
+            syslog(LOG_INFO, "Settings file change detected. Reloading...");
+            loadSettings();
+        }
+    }
+}
+
+void G13::loadSettings() {
+    std::string filename = ConfigPath::getSettingsPath();
+
+    struct stat file_stat;
+    if (stat(filename.c_str(), &file_stat) != 0) {
+        // Create a default file so the user has something to edit in ~/.config/g13/
+        std::ofstream outfile(filename);
+        if (outfile.is_open()) {
+            outfile << "# G13 driver settings (shared by all profiles).\n"
+                    << "# Changes are picked up while the driver is running.\n"
+                    << "\n"
+                    << "# Joystick deadzone in key mode: how far (1-127) the stick has to move\n"
+                    << "# away from the center before a direction key is pressed.\n"
+                    << "# Higher values need a bigger movement.\n"
+                    << "stick_deadzone=" << G13_DEFAULT_STICK_DEADZONE << "\n";
+            outfile.close();
+            syslog(LOG_INFO, "Created default settings file: %s", filename.c_str());
+        } else {
+            syslog(LOG_ERR, "Could not create settings file: %s", filename.c_str());
+        }
+        if (stat(filename.c_str(), &file_stat) != 0) return;
+    }
+    last_settings_mtime = file_stat.st_mtime;
+
+    std::ifstream file(filename);
+    if (!file.is_open()) return;
+
+    // Settings that are missing from the file fall back to their defaults.
+    int deadzone = G13_DEFAULT_STICK_DEADZONE;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::string trimmed_line = trim_string(line);
+        if (trimmed_line.empty() || trimmed_line[0] == '#') continue;
+        size_t eq_pos = trimmed_line.find('=');
+        if (eq_pos == std::string::npos) continue;
+        std::string key = trim_string(trimmed_line.substr(0, eq_pos));
+        std::string value = trim_string(trimmed_line.substr(eq_pos + 1));
+
+        if (key == "stick_deadzone") {
+            try {
+                size_t used;
+                int v = std::stoi(value, &used);
+                if (used != value.size() || v < 1 || v > 127) throw std::out_of_range(value);
+                deadzone = v;
+            } catch (...) {
+                syslog(LOG_WARNING, "Invalid stick_deadzone '%s' (allowed: 1-127), using %d.",
+                       value.c_str(), G13_DEFAULT_STICK_DEADZONE);
+            }
+        } else {
+            syslog(LOG_WARNING, "Unknown setting '%s' in %s", key.c_str(), filename.c_str());
+        }
+    }
+
+    stick_deadzone = deadzone;
+    syslog(LOG_INFO, "Loaded settings: stick_deadzone=%d", stick_deadzone);
 }
 
 std::unique_ptr<Macro> G13::loadMacro(int num) {
@@ -331,13 +403,15 @@ void G13::parse_joystick(unsigned char *buf) {
         UInput::send_event(EV_ABS, ABS_X, stick_x);
         UInput::send_event(EV_ABS, ABS_Y, stick_y);
     } else if (stick_mode == STICK_KEYS) {
+        const int low = G13_STICK_CENTER - stick_deadzone;
+        const int high = G13_STICK_CENTER + stick_deadzone;
         int pressed[4];
-        if (stick_y <= 96) { pressed[0] = 1; pressed[3] = 0; }
-        else if (stick_y >= 160) { pressed[0] = 0; pressed[3] = 1; }
+        if (stick_y <= low) { pressed[0] = 1; pressed[3] = 0; }
+        else if (stick_y >= high) { pressed[0] = 0; pressed[3] = 1; }
         else { pressed[0] = 0; pressed[3] = 0; }
 
-        if (stick_x <= 96) { pressed[1] = 1; pressed[2] = 0; }
-        else if (stick_x >= 160) { pressed[1] = 0; pressed[2] = 1; }
+        if (stick_x <= low) { pressed[1] = 1; pressed[2] = 0; }
+        else if (stick_x >= high) { pressed[1] = 0; pressed[2] = 1; }
         else { pressed[1] = 0; pressed[2] = 0; }
 
         int codes[4] = {36, 37, 38, 39};
