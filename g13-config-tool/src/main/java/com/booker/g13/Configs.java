@@ -3,9 +3,13 @@ package com.booker.g13;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -120,5 +124,77 @@ public class Configs {
 		try (FileOutputStream fos = new FileOutputStream(file.toFile())) {
 			props.store(fos, new Date().toString());
 		}
+	}
+
+	// --- Driver settings (g13.properties, shared by all profiles) ---
+
+	public static final int STICK_DEADZONE_MIN = 1;
+	public static final int STICK_DEADZONE_MAX = 127;
+	public static final int STICK_DEADZONE_DEFAULT = 32;
+	private static final String STICK_DEADZONE_KEY = "stick_deadzone";
+
+	private static Path getSettingsPath() {
+		return getConfigDir().resolve("g13.properties");
+	}
+
+	/**
+	 * Reads the joystick deadzone from g13.properties.
+	 * @return The deadzone, or the default if the file or the setting is missing or invalid (like the driver).
+	 */
+	public static int loadStickDeadzone() {
+		final Path file = getSettingsPath();
+		if (Files.notExists(file)) return STICK_DEADZONE_DEFAULT;
+
+		final Properties props = new Properties();
+		try (FileInputStream fis = new FileInputStream(file.toFile())) {
+			props.load(fis);
+			final int value = Integer.parseInt(props.getProperty(STICK_DEADZONE_KEY, "").trim());
+			if (value >= STICK_DEADZONE_MIN && value <= STICK_DEADZONE_MAX) return value;
+		} catch (IOException | NumberFormatException e) {
+			// Fall through to the default.
+		}
+		return STICK_DEADZONE_DEFAULT;
+	}
+
+	/**
+	 * Writes the joystick deadzone to g13.properties.
+	 * Only the stick_deadzone line is changed; comments and other settings in the file are kept.
+	 */
+	public static void saveStickDeadzone(int deadzone) throws IOException {
+		final Path file = getSettingsPath();
+		Files.createDirectories(file.getParent());
+		final String newLine = STICK_DEADZONE_KEY + "=" + deadzone;
+
+		final List<String> lines = new ArrayList<>();
+		if (Files.exists(file)) {
+			boolean replaced = false;
+			for (final String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+				final String trimmed = line.trim();
+				final int eq = trimmed.indexOf('=');
+				if (!trimmed.startsWith("#") && eq > 0 && trimmed.substring(0, eq).trim().equals(STICK_DEADZONE_KEY)) {
+					if (!replaced) lines.add(newLine);
+					replaced = true; // Drop duplicate entries.
+				} else {
+					lines.add(line);
+				}
+			}
+			if (!replaced) lines.add(newLine);
+		} else {
+			// Same content the driver creates.
+			lines.add("# G13 driver settings (shared by all profiles).");
+			lines.add("# Changes are picked up while the driver is running.");
+			lines.add("");
+			lines.add("# Joystick deadzone in key mode: how far (1-127) the stick has to move");
+			lines.add("# away from the center before a direction key is pressed.");
+			lines.add("# Higher values need a bigger movement.");
+			lines.add(newLine);
+		}
+
+		// Write to a temporary file and move it in place, so the driver never reads a half-written file.
+		// If the file is a symlink (e.g. managed dotfiles), replace its target, not the link.
+		final Path target = Files.exists(file) ? file.toRealPath() : file;
+		final Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
+		Files.write(tmp, lines, StandardCharsets.UTF_8);
+		Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 	}
 }

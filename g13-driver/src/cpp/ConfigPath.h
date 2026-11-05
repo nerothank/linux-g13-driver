@@ -27,6 +27,12 @@ public:
     static std::string getMacroPath(int macroId);
 
     /**
+     * @brief Gets the full path to the driver settings file (profile independent).
+     * @return The absolute path string (e.g., "/home/user/.config/g13/g13.properties").
+     */
+    static std::string getSettingsPath();
+
+    /**
      * @brief Gets the full path to the FIFO pipe.
      * @return The absolute path (e.g., "/run/user/1000/g13-lcd" or fallback to "/tmp/g13-lcd").
      */

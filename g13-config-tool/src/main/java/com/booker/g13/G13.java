@@ -107,6 +107,7 @@ public class G13 extends JPanel {
 		final JPanel rightPanel = new JPanel(new BorderLayout());
 		rightPanel.add(keybindPanel, BorderLayout.NORTH);
 		rightPanel.add(macroEditorPanel, BorderLayout.CENTER);
+		rightPanel.add(new StickPanel(), BorderLayout.SOUTH);
 		add(rightPanel, BorderLayout.EAST);
 		
 		// Provide the macro data to the panels that need it.
